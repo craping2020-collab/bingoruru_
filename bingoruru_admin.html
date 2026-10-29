@@ -1,0 +1,1819 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+<title>빙고루루 어드민</title>
+<link href="https://fonts.googleapis.com/css2?family=Pretendard:wght@400;500;600;700;800&display=swap" rel="stylesheet"/>
+<!-- ── Firebase SDK (compat) ── -->
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-firestore-compat.js"></script>
+<style>
+:root{
+  --sky:#4A90C4;--sky-dark:#3A7DB8;--sky-pale:#E6F1FB;--sky-border:#85B7EB;--sky-text:#0C447C;
+  --lulu-bg:#FAEEDA;--lulu-border:#FAC775;--lulu-text:#412402;--lulu-coin:#BA7517;
+  --danger-bg:#FAECE7;--danger-border:#F5C4B3;--danger-text:#712B13;
+  --success-bg:#EAF3DE;--success-border:#97C459;--success-text:#27500A;
+  --gold:#BA7517;--gold-bg:#FAEEDA;
+  --bg:#F0F4FA;--surface:#FFF;--surface2:#F0F5FB;
+  --border:rgba(0,0,0,.09);--text:#1A1A2E;--text-sub:#5A6A80;--text-muted:#96A5B8;
+  --sidebar-w:220px;
+  --radius:12px;--radius-sm:8px;
+}
+*{box-sizing:border-box;margin:0;padding:0;}
+body{font-family:'Pretendard',-apple-system,sans-serif;background:var(--bg);color:var(--text);display:flex;min-height:100vh;}
+
+/* ── SIDEBAR ── */
+#sidebar{
+  width:var(--sidebar-w);min-height:100vh;background:#1A2235;color:#fff;
+  display:flex;flex-direction:column;flex-shrink:0;position:sticky;top:0;height:100vh;overflow-y:auto;
+}
+.sb-logo{padding:1.2rem 1.1rem .8rem;border-bottom:1px solid rgba(255,255,255,.1);}
+.sb-logo-title{font-size:15px;font-weight:800;color:#fff;letter-spacing:-.02em;}
+.sb-logo-sub{font-size:10px;color:rgba(255,255,255,.45);margin-top:2px;}
+.sb-section{padding:.5rem 0;}
+.sb-section-label{font-size:9px;font-weight:700;letter-spacing:.12em;color:rgba(255,255,255,.35);padding:.4rem 1.1rem .3rem;}
+.sb-item{display:flex;align-items:center;gap:8px;padding:.48rem 1.1rem;font-size:12px;color:rgba(255,255,255,.72);cursor:pointer;transition:background .15s,color .15s;border-left:3px solid transparent;}
+.sb-item:hover{background:rgba(255,255,255,.07);color:#fff;}
+.sb-item.active{background:rgba(74,144,196,.18);color:#7BBFDC;border-left-color:#7BBFDC;}
+.sb-icon{font-size:14px;width:18px;text-align:center;flex-shrink:0;}
+.sb-badge{margin-left:auto;background:rgba(255,255,255,.12);border-radius:999px;font-size:9px;padding:1px 6px;color:rgba(255,255,255,.55);}
+
+/* ── MAIN ── */
+#main{flex:1;display:flex;flex-direction:column;min-width:0;}
+.topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:.7rem 1.5rem;display:flex;align-items:center;gap:10px;}
+.topbar-title{font-size:15px;font-weight:700;color:var(--text);}
+.topbar-date{font-size:11px;color:var(--text-muted);margin-left:auto;}
+.topbar-link{font-size:11px;color:var(--sky);text-decoration:none;border:1px solid var(--sky-border);padding:3px 10px;border-radius:999px;}
+.topbar-link:hover{background:var(--sky-pale);}
+
+.content{flex:1;padding:1.4rem 1.5rem;overflow-y:auto;}
+
+/* ── PAGE SECTIONS ── */
+.page{display:none;}
+.page.active{display:block;}
+
+/* ── CARDS ── */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);margin-bottom:1rem;}
+.card-header{padding:.8rem 1.1rem;border-bottom:1px solid var(--border);display:flex;align-items:center;gap:8px;}
+.card-title{font-size:13px;font-weight:700;color:var(--text);}
+.card-body{padding:1rem 1.1rem;}
+
+/* ── STAT GRID ── */
+.stat-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(140px,1fr));gap:.75rem;margin-bottom:1rem;}
+.stat-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-sm);padding:.8rem 1rem;}
+.stat-label{font-size:10px;color:var(--text-muted);font-weight:600;margin-bottom:3px;}
+.stat-val{font-size:22px;font-weight:800;color:var(--sky-text);}
+.stat-sub{font-size:10px;color:var(--text-muted);margin-top:2px;}
+
+/* ── TABLE ── */
+.tbl-wrap{overflow-x:auto;}
+table{width:100%;border-collapse:collapse;font-size:12px;}
+thead th{background:var(--surface2);font-weight:700;color:var(--text-sub);text-align:left;padding:8px 10px;border-bottom:1px solid var(--border);white-space:nowrap;}
+tbody td{padding:8px 10px;border-bottom:1px solid var(--border);color:var(--text);vertical-align:middle;}
+tbody tr:last-child td{border-bottom:none;}
+tbody tr:hover td{background:var(--sky-pale);}
+.badge{display:inline-block;padding:2px 7px;border-radius:999px;font-size:10px;font-weight:700;}
+.badge-blue{background:var(--sky-pale);color:var(--sky-text);}
+.badge-gold{background:var(--gold-bg);color:var(--gold);}
+.badge-green{background:var(--success-bg);color:var(--success-text);}
+.badge-red{background:var(--danger-bg);color:var(--danger-text);}
+
+/* ── FORM ELEMENTS ── */
+.form-row{display:flex;gap:8px;align-items:flex-end;margin-bottom:.7rem;flex-wrap:wrap;}
+.form-group{display:flex;flex-direction:column;gap:4px;}
+.form-label{font-size:11px;font-weight:600;color:var(--text-muted);}
+.form-input{padding:7px 10px;border-radius:var(--radius-sm);border:1px solid rgba(0,0,0,.14);background:var(--surface2);font-size:12px;font-family:inherit;color:var(--text);outline:none;transition:border-color .15s;}
+.form-input:focus{border-color:var(--sky);}
+textarea.form-input{resize:vertical;min-height:80px;line-height:1.6;}
+select.form-input{cursor:pointer;}
+
+/* ── BUTTONS ── */
+.btn{padding:7px 14px;border-radius:var(--radius-sm);border:none;font-size:12px;font-weight:700;font-family:inherit;cursor:pointer;transition:background .15s;}
+.btn-primary{background:var(--sky);color:#fff;}
+.btn-primary:hover{background:var(--sky-dark);}
+.btn-success{background:#5EA34B;color:#fff;}
+.btn-success:hover{background:#4A8B39;}
+.btn-danger{background:#C0392B;color:#fff;}
+.btn-danger:hover{background:#A93226;}
+.btn-ghost{background:transparent;border:1px solid var(--border);color:var(--text-sub);}
+.btn-ghost:hover{background:var(--surface2);}
+.btn-sm{padding:4px 9px;font-size:11px;}
+.btn-xs{padding:2px 7px;font-size:10px;}
+
+/* ── CATEGORY CARDS ── */
+.cat-admin-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(320px,1fr));gap:1rem;}
+.cat-admin-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:1rem;}
+.cat-admin-header{display:flex;align-items:center;gap:8px;margin-bottom:.8rem;}
+.cat-admin-icon{font-size:24px;}
+.cat-admin-name{font-size:13px;font-weight:700;color:var(--text);flex:1;}
+.cat-admin-id{font-size:10px;color:var(--text-muted);}
+.word-tags{display:flex;flex-wrap:wrap;gap:5px;margin-bottom:.7rem;}
+.word-tag{display:inline-flex;align-items:center;gap:3px;padding:2px 7px;border-radius:999px;font-size:11px;background:var(--surface2);border:1px solid var(--border);color:var(--text);}
+.word-tag.top5{background:var(--lulu-bg);border-color:var(--lulu-border);color:var(--lulu-text);}
+.word-tag-del{cursor:pointer;color:var(--text-muted);font-size:10px;line-height:1;}
+.word-tag-del:hover{color:var(--danger-text);}
+
+/* ── SETTINGS ── */
+.setting-row{display:flex;align-items:center;justify-content:space-between;padding:.7rem 0;border-bottom:1px solid var(--border);}
+.setting-row:last-child{border-bottom:none;}
+.setting-info{flex:1;}
+.setting-name{font-size:12px;font-weight:600;color:var(--text);}
+.setting-desc{font-size:10px;color:var(--text-muted);margin-top:2px;}
+.setting-control{flex-shrink:0;margin-left:1rem;}
+.number-input{width:80px;padding:5px 8px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:12px;font-family:inherit;text-align:right;}
+
+/* ── TOAST ── */
+#toast{position:fixed;bottom:1.5rem;right:1.5rem;background:#1A2235;color:#fff;padding:.6rem 1.1rem;border-radius:var(--radius-sm);font-size:12px;font-weight:600;opacity:0;pointer-events:none;transition:opacity .25s;z-index:9999;}
+#toast.show{opacity:1;}
+
+/* ── MODAL ── */
+.modal-overlay{display:none;position:fixed;inset:0;background:rgba(0,0,0,.45);z-index:5000;align-items:center;justify-content:center;padding:1rem;}
+.modal-overlay.show{display:flex;}
+.modal-box{background:var(--surface);border-radius:var(--radius);padding:1.4rem;max-width:480px;width:100%;max-height:85vh;overflow-y:auto;}
+.modal-title{font-size:16px;font-weight:700;margin-bottom:.4rem;}
+.modal-desc{font-size:12px;color:var(--text-muted);margin-bottom:1rem;line-height:1.6;}
+.modal-footer{display:flex;gap:8px;justify-content:flex-end;margin-top:1rem;}
+
+/* ── TABS ── */
+.tab-bar{display:flex;gap:4px;margin-bottom:1rem;border-bottom:2px solid var(--border);padding-bottom:0;}
+.tab-btn{padding:.5rem .9rem;font-size:12px;font-weight:600;color:var(--text-muted);background:transparent;border:none;cursor:pointer;border-bottom:2px solid transparent;margin-bottom:-2px;font-family:inherit;}
+.tab-btn.active{color:var(--sky);border-bottom-color:var(--sky);}
+.tab-panel{display:none;}
+.tab-panel.active{display:block;}
+
+/* ── EMPTY STATE ── */
+.empty-state{text-align:center;padding:2.5rem 1rem;color:var(--text-muted);}
+.empty-state-icon{font-size:32px;margin-bottom:.5rem;}
+.empty-state-text{font-size:13px;}
+
+/* ── DATE PICKER ── */
+.date-nav{display:flex;align-items:center;gap:8px;margin-bottom:1rem;}
+.date-nav-label{font-size:12px;font-weight:600;color:var(--text);}
+
+/* ── CUSTOM GAME STATUS BADGES ── */
+.badge-private{background:#F0F5FB;color:var(--text-muted);}
+.badge-pending{background:var(--lulu-bg);color:var(--lulu-text);}
+.badge-public{background:var(--success-bg);color:var(--success-text);}
+.cg-filter-active{background:var(--sky)!important;color:#fff!important;border-color:var(--sky)!important;}
+
+/* ── CUSTOM GAME DETAIL MODAL ── */
+.modal-box-wide{max-width:700px;width:100%;}
+.cgd-header{display:flex;align-items:center;gap:10px;margin-bottom:1rem;padding-bottom:.8rem;border-bottom:1px solid var(--border);}
+.cgd-icon-input{font-size:24px;width:44px;padding:4px;border-radius:var(--radius-sm);border:1px solid var(--border);text-align:center;font-family:inherit;}
+.cgd-topic-input{flex:1;font-size:15px;font-weight:700;padding:6px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);font-family:inherit;color:var(--text);}
+.cgd-stat-row{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;}
+.cgd-stat{background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;text-align:center;}
+.cgd-stat-label{font-size:9px;color:var(--text-muted);font-weight:700;margin-bottom:2px;}
+.cgd-stat-val{font-size:18px;font-weight:800;color:var(--sky-text);}
+.cgd-info-row{display:flex;justify-content:space-between;font-size:11px;padding:5px 0;border-bottom:1px solid var(--border);}
+.cgd-info-row:last-child{border-bottom:none;}
+.cgd-info-key{color:var(--text-muted);font-weight:600;}
+.cgd-info-val{color:var(--text);}
+.kw-tags{display:flex;flex-wrap:wrap;gap:5px;margin-top:.6rem;max-height:140px;overflow-y:auto;}
+.kw-tag{display:inline-flex;align-items:center;gap:3px;padding:3px 8px;border-radius:999px;font-size:11px;background:var(--surface2);border:1px solid var(--border);}
+.kw-tag.top{background:var(--lulu-bg);border-color:var(--lulu-border);color:var(--lulu-text);}
+.kw-tag-del{cursor:pointer;color:var(--text-muted);margin-left:2px;line-height:1;}
+.kw-tag-del:hover{color:var(--danger-text);}
+.plays-table-wrap{max-height:280px;overflow-y:auto;}
+.rating-bar-row{display:flex;align-items:center;gap:6px;margin-bottom:4px;font-size:11px;}
+.rating-bar-bg{flex:1;height:7px;background:var(--surface2);border-radius:3px;overflow:hidden;}
+.rating-bar-fill{height:100%;background:#F5C030;border-radius:3px;}
+.feedback-list{margin-top:.7rem;display:flex;flex-direction:column;gap:6px;max-height:200px;overflow-y:auto;}
+.feedback-item{background:var(--surface2);border-radius:var(--radius-sm);padding:7px 10px;font-size:11px;}
+.fi-star{color:#F5C030;font-weight:700;margin-right:5px;}
+.fi-nick{color:var(--text-muted);margin-right:5px;}
+.status-toggle-row{display:flex;gap:8px;align-items:center;margin-bottom:.8rem;padding:.7rem;background:var(--surface2);border-radius:var(--radius-sm);}
+.status-toggle-label{font-size:12px;font-weight:600;flex:1;}
+
+/* ── USER DETAIL ── */
+.user-stat-grid{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-bottom:1rem;}
+.user-game-item{padding:7px 10px;border-radius:var(--radius-sm);border:1px solid var(--border);font-size:11px;margin-bottom:5px;}
+.user-game-topic{font-weight:700;color:var(--text);}
+.user-game-meta{color:var(--text-muted);margin-top:2px;}
+</style>
+</head>
+<body>
+
+<!-- SIDEBAR -->
+<div id="sidebar">
+  <div class="sb-logo">
+    <div class="sb-logo-title">🎯 빙고루루 Admin</div>
+    <div class="sb-logo-sub">Bingoruru Management</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-section-label">대시보드</div>
+    <div class="sb-item active" data-page="dashboard"><span class="sb-icon">📊</span>개요</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-section-label">콘텐츠</div>
+    <div class="sb-item" data-page="categories"><span class="sb-icon">🗂️</span>카테고리 관리</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-section-label">유저 & 점수</div>
+    <div class="sb-item" data-page="scores"><span class="sb-icon">🏆</span>일별 점수 현황</div>
+    <div class="sb-item" data-page="users"><span class="sb-icon">👥</span>닉네임 관리</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-section-label">커스텀 게임</div>
+    <div class="sb-item" data-page="custom-games"><span class="sb-icon">🎮</span>커스텀 게임 관리 <span class="sb-badge" id="sb-pending-badge">0</span></div>
+    <div class="sb-item" data-page="maker-ranking"><span class="sb-icon">🏅</span>메이커 랭킹</div>
+  </div>
+  <div class="sb-section">
+    <div class="sb-section-label">설정</div>
+    <div class="sb-item" data-page="settings"><span class="sb-icon">⚙️</span>게임 설정</div>
+    <div class="sb-item" data-page="storage"><span class="sb-icon">🗄️</span>스토리지 관리</div>
+  </div>
+</div>
+
+<!-- MAIN -->
+<div id="main">
+  <div class="topbar">
+    <div class="topbar-title" id="topbar-title">개요</div>
+    <div class="topbar-date" id="topbar-date"></div>
+    <span id="fb-status" style="font-size:11px;color:#BA7517;margin-right:4px;">Firebase: 초기화 중...</span>
+    <a href="bingoruru_master.html" class="topbar-link" target="_blank">🎮 게임 열기</a>
+  </div>
+
+  <div class="content">
+
+    <!-- ── DASHBOARD ── -->
+    <div class="page active" id="page-dashboard">
+      <div class="stat-grid" id="stat-grid"></div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;">
+        <div class="card">
+          <div class="card-header"><span class="card-title">오늘 점수 Top 10</span></div>
+          <div class="card-body" id="dash-top10"></div>
+        </div>
+        <div class="card">
+          <div class="card-header"><span class="card-title">카테고리별 플레이 현황</span></div>
+          <div class="card-body" id="dash-cat-stat"></div>
+        </div>
+      </div>
+
+      <div class="card" style="margin-top:1rem;">
+        <div class="card-header"><span class="card-title">최근 7일 플레이 현황</span></div>
+        <div class="card-body" id="dash-weekly"></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:1rem;margin-top:1rem;">
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">커스텀 게임 현황</span>
+            <button class="btn btn-ghost btn-xs" style="margin-left:auto;" onclick="loadDashCustomGames()">새로고침</button>
+          </div>
+          <div class="card-body" id="dash-custom-games"><div class="empty-state"><div class="empty-state-text" style="font-size:11px;color:var(--text-muted);">로드 중...</div></div></div>
+        </div>
+        <div class="card">
+          <div class="card-header">
+            <span class="card-title">메이커 TOP 5</span>
+            <button class="btn btn-ghost btn-xs" style="margin-left:auto;" onclick="loadDashMakerTop()">새로고침</button>
+          </div>
+          <div class="card-body" id="dash-maker-top"><div class="empty-state"><div class="empty-state-text" style="font-size:11px;color:var(--text-muted);">로드 중...</div></div></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CATEGORIES ── -->
+    <div class="page" id="page-categories">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <div style="font-size:13px;font-weight:700;">카테고리 목록 (<span id="cat-count">0</span>개)</div>
+        <button class="btn btn-primary" onclick="openAddCatModal()">+ 카테고리 추가</button>
+      </div>
+      <div class="cat-admin-grid" id="cat-admin-grid"></div>
+    </div>
+
+    <!-- ── SCORES ── -->
+    <div class="page" id="page-scores">
+      <div class="date-nav">
+        <button class="btn btn-ghost btn-sm" onclick="scoreNavDate(-1)">◀</button>
+        <div class="date-nav-label" id="score-date-label"></div>
+        <button class="btn btn-ghost btn-sm" onclick="scoreNavDate(1)">▶</button>
+        <button class="btn btn-ghost btn-sm" onclick="scoreGoToday()">오늘</button>
+      </div>
+      <div class="stat-grid" id="score-stat-grid"></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">점수 기록 (해당 날짜)</span></div>
+        <div class="card-body">
+          <div class="tbl-wrap">
+            <table id="score-table">
+              <thead><tr>
+                <th>#</th><th>닉네임</th><th>카테고리</th><th>판수</th>
+                <th>합산 점수</th><th>랭킹 등록</th>
+              </tr></thead>
+              <tbody id="score-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── USERS ── -->
+    <div class="page" id="page-users">
+      <!-- 사용자 조회 -->
+      <div class="card">
+        <div class="card-header"><span class="card-title">사용자 조회</span></div>
+        <div class="card-body">
+          <div class="form-row">
+            <div class="form-group" style="flex:1;">
+              <div class="form-label">닉네임으로 조회</div>
+              <input class="form-input" id="user-lookup-input" placeholder="닉네임 입력..." onkeydown="if(event.key==='Enter')lookupUser()"/>
+            </div>
+            <button class="btn btn-primary" onclick="lookupUser()">조회</button>
+          </div>
+          <div id="user-lookup-result"></div>
+        </div>
+      </div>
+      <!-- 닉네임 목록 -->
+      <div class="card">
+        <div class="card-header">
+          <span class="card-title">등록된 닉네임 (localStorage)</span>
+          <span class="badge badge-blue" style="margin-left:auto;" id="nick-count-badge">0명</span>
+        </div>
+        <div class="card-body">
+          <div class="form-row" style="margin-bottom:1rem;">
+            <div class="form-group" style="flex:1;">
+              <div class="form-label">검색</div>
+              <input class="form-input" id="nick-search" placeholder="닉네임 검색..." oninput="renderNickTable()"/>
+            </div>
+          </div>
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr><th>#</th><th>닉네임</th><th>현재 사용자</th><th>관리</th></tr></thead>
+              <tbody id="nick-tbody"></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── SETTINGS ── -->
+    <div class="page" id="page-settings">
+      <div class="card">
+        <div class="card-header"><span class="card-title">게임 상수 설정</span></div>
+        <div class="card-body">
+          <div style="background:var(--lulu-bg);border:1px solid var(--lulu-border);border-radius:var(--radius-sm);padding:.7rem 1rem;margin-bottom:1rem;font-size:11px;color:var(--lulu-text);line-height:1.6;">
+            ⚠️ 설정은 이 브라우저의 localStorage에 저장됩니다. 게임 파일도 동일한 origin에서 열어야 적용됩니다.
+          </div>
+          <div id="settings-rows"></div>
+          <div style="margin-top:1rem;display:flex;gap:8px;">
+            <button class="btn btn-primary" onclick="saveSettings()">설정 저장</button>
+            <button class="btn btn-ghost" onclick="resetSettings()">기본값으로 초기화</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── CUSTOM GAMES ── -->
+    <div class="page" id="page-custom-games">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.6rem;flex-wrap:wrap;">
+        <div style="font-size:13px;font-weight:700;">커스텀 게임 목록</div>
+        <div style="display:flex;gap:4px;margin-left:auto;">
+          <button class="btn btn-ghost btn-sm" id="cg-filter-all" onclick="setCGFilter('all')">전체</button>
+          <button class="btn btn-ghost btn-sm" id="cg-filter-private" onclick="setCGFilter('private')">비공개</button>
+          <button class="btn btn-ghost btn-sm" id="cg-filter-pending" onclick="setCGFilter('pending')">심사중</button>
+          <button class="btn btn-ghost btn-sm" id="cg-filter-public" onclick="setCGFilter('public')">공개</button>
+        </div>
+        <button class="btn btn-primary btn-sm" onclick="loadCustomGames()">새로고침</button>
+      </div>
+      <div style="background:var(--sky-pale);border:1px solid var(--sky-border);border-radius:var(--radius-sm);padding:.55rem 1rem;margin-bottom:.8rem;font-size:11px;color:var(--sky-text);display:flex;align-items:center;gap:10px;">
+        <span>🌐 <strong>공개 승인</strong>한 게임은 마스터 화면 "유저 제출" 탭에 즉시 반영됩니다.</span>
+        <a href="bingoruru_master.html" target="_blank" style="margin-left:auto;color:var(--sky-text);font-weight:700;text-decoration:underline;white-space:nowrap;">마스터 열기 →</a>
+      </div>
+      <div class="stat-grid" id="cg-stat-grid"></div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">커스텀 게임 목록</span></div>
+        <div class="card-body">
+          <div class="tbl-wrap">
+            <table id="cg-table">
+              <thead><tr>
+                <th>주제</th><th>출제자</th><th>상태</th><th>플레이</th><th>참여자</th><th>별점</th><th>키워드</th><th>생성일</th><th>관리</th>
+              </tr></thead>
+              <tbody id="cg-tbody"><tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:2rem;">불러오는 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── MAKER RANKING ── -->
+    <div class="page" id="page-maker-ranking">
+      <div style="display:flex;align-items:center;justify-content:space-between;margin-bottom:1rem;">
+        <div style="font-size:13px;font-weight:700;">메이커 랭킹</div>
+        <button class="btn btn-primary btn-sm" onclick="loadMakerRanking()">새로고침</button>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">메이커 점수 순위 (상위 50명)</span></div>
+        <div class="card-body">
+          <div class="tbl-wrap">
+            <table>
+              <thead><tr>
+                <th>#</th><th>닉네임</th><th>점수</th><th>총 플레이</th><th>참여자</th><th>게임 수</th><th>관리</th>
+              </tr></thead>
+              <tbody id="mr-tbody"><tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">불러오는 중...</td></tr></tbody>
+            </table>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ── STORAGE ── -->
+    <div class="page" id="page-storage">
+      <div class="card">
+        <div class="card-header"><span class="card-title">localStorage 키 목록</span></div>
+        <div class="card-body">
+          <div id="storage-list"></div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="card-header"><span class="card-title">위험 구역</span></div>
+        <div class="card-body">
+          <div style="display:flex;gap:8px;flex-wrap:wrap;">
+            <button class="btn btn-danger btn-sm" onclick="clearTodayData()">오늘 데이터 초기화</button>
+            <button class="btn btn-danger btn-sm" onclick="clearAllScores()">전체 점수 초기화</button>
+            <button class="btn btn-danger btn-sm" onclick="clearAllNicks()">닉네임 전체 삭제</button>
+            <button class="btn btn-danger btn-sm" onclick="clearAllBrData()">빙고루루 데이터 전체 삭제</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+  </div><!-- /content -->
+</div><!-- /main -->
+
+<!-- ── TOAST ── -->
+<div id="toast"></div>
+
+<!-- ── CATEGORY MODAL ── -->
+<div class="modal-overlay" id="cat-modal">
+  <div class="modal-box">
+    <div class="modal-title" id="cat-modal-title">카테고리 추가</div>
+    <div class="modal-desc">카테고리 정보를 입력하세요. top5는 항상 게임에 포함됩니다.</div>
+
+    <div class="form-row">
+      <div class="form-group" style="width:80px;">
+        <div class="form-label">아이콘</div>
+        <input class="form-input" id="cat-icon" placeholder="🎯" maxlength="4"/>
+      </div>
+      <div class="form-group" style="flex:1;">
+        <div class="form-label">ID (영문)</div>
+        <input class="form-input" id="cat-id" placeholder="food" maxlength="20"/>
+      </div>
+    </div>
+    <div class="form-group" style="margin-bottom:.7rem;">
+      <div class="form-label">카테고리 전체 이름</div>
+      <input class="form-input" id="cat-name" placeholder="[리포트] 인기 메뉴 Top 30선"/>
+    </div>
+    <div class="form-group" style="margin-bottom:.7rem;">
+      <div class="form-label">짧은 설명 (desc)</div>
+      <input class="form-input" id="cat-desc" placeholder="메뉴 TOP 30" maxlength="20"/>
+    </div>
+    <div class="form-group" style="margin-bottom:.7rem;">
+      <div class="form-label">TOP 5 단어 (쉼표 구분, 정확히 5개 필요)</div>
+      <input class="form-input" id="cat-top5" placeholder="단어1,단어2,단어3,단어4,단어5"/>
+    </div>
+    <div class="form-group" style="margin-bottom:.7rem;">
+      <div class="form-label">나머지 단어 pool (쉼표 구분, 11개 이상 권장)</div>
+      <textarea class="form-input" id="cat-pool" rows="5" placeholder="단어6,단어7,단어8,..."></textarea>
+    </div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeCatModal()">취소</button>
+      <button class="btn btn-primary" onclick="saveCat()">저장</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── SCORE DETAIL MODAL ── -->
+<div class="modal-overlay" id="score-detail-modal">
+  <div class="modal-box">
+    <div class="modal-title">점수 상세</div>
+    <div id="score-detail-body"></div>
+    <div class="modal-footer">
+      <button class="btn btn-ghost" onclick="closeScoreDetailModal()">닫기</button>
+    </div>
+  </div>
+</div>
+
+<!-- ── CUSTOM GAME DETAIL MODAL ── -->
+<div class="modal-overlay" id="cg-detail-modal">
+  <div class="modal-box modal-box-wide">
+    <!-- 헤더: 아이콘 + 주제 편집 -->
+    <div class="cgd-header">
+      <input class="cgd-icon-input" id="cgd-icon" maxlength="4" title="아이콘"/>
+      <input class="cgd-topic-input" id="cgd-topic" placeholder="게임 주제"/>
+      <span id="cgd-status-badge" class="badge" style="flex-shrink:0;"></span>
+    </div>
+    <!-- 탭 바 -->
+    <div class="tab-bar">
+      <button class="tab-btn active" id="cgd-tab-btn-info" onclick="setCGDTab('info')">기본 정보</button>
+      <button class="tab-btn" id="cgd-tab-btn-keywords" onclick="setCGDTab('keywords')">키워드</button>
+      <button class="tab-btn" id="cgd-tab-btn-plays" onclick="setCGDTab('plays')">플레이 기록</button>
+      <button class="tab-btn" id="cgd-tab-btn-ratings" onclick="setCGDTab('ratings')">별점 / 의견</button>
+    </div>
+    <!-- 탭: 기본 정보 -->
+    <div class="tab-panel active" id="cgd-tab-info">
+      <div class="cgd-stat-row" id="cgd-stats"></div>
+      <div id="cgd-info-rows"></div>
+      <div class="status-toggle-row" style="margin-top:.8rem;">
+        <span class="status-toggle-label" id="cgd-status-label"></span>
+        <button class="btn btn-success btn-sm" id="cgd-approve-btn" onclick="cgdApprove()">🌐 공개 승인</button>
+        <button class="btn btn-ghost btn-sm" id="cgd-revoke-btn" onclick="cgdRevoke()">🔒 비공개로</button>
+      </div>
+    </div>
+    <!-- 탭: 키워드 -->
+    <div class="tab-panel" id="cgd-tab-keywords">
+      <div style="font-size:11px;color:var(--text-muted);margin-bottom:.5rem;">앞 5개는 TOP5로 항상 포함됩니다. 드래그로 순서 변경은 미지원 — 직접 삭제 후 재추가하세요.</div>
+      <div class="kw-tags" id="cgd-kw-list"></div>
+      <div class="form-row" style="margin-top:.8rem;">
+        <input class="form-input" id="cgd-kw-input" placeholder="키워드 추가..." style="flex:1;" onkeydown="if(event.key==='Enter')cgdAddKeyword()"/>
+        <button class="btn btn-success btn-sm" onclick="cgdAddKeyword()">추가</button>
+      </div>
+      <div style="font-size:11px;color:var(--text-muted);margin-top:.4rem;" id="cgd-kw-count"></div>
+    </div>
+    <!-- 탭: 플레이 기록 -->
+    <div class="tab-panel" id="cgd-tab-plays">
+      <div class="plays-table-wrap">
+        <table>
+          <thead><tr><th>#</th><th>닉네임</th><th>점수</th><th>공개 타일</th><th>빙고수</th><th>날짜</th></tr></thead>
+          <tbody id="cgd-plays-tbody"></tbody>
+        </table>
+      </div>
+    </div>
+    <!-- 탭: 별점/의견 -->
+    <div class="tab-panel" id="cgd-tab-ratings">
+      <div id="cgd-rating-summary"></div>
+      <div class="feedback-list" id="cgd-feedback-list"></div>
+    </div>
+    <!-- 푸터 -->
+    <div class="modal-footer" style="justify-content:space-between;">
+      <button class="btn btn-danger btn-sm" onclick="cgdDelete()">🗑 게임 삭제</button>
+      <div style="display:flex;gap:8px;">
+        <button class="btn btn-ghost" onclick="closeCGDetail()">닫기</button>
+        <button class="btn btn-primary" onclick="saveCGDetail()">변경사항 저장</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ══════════════════════════════════════════════════════════
+   ★ FIREBASE 설정
+   Firebase Console → 프로젝트 설정 → 내 앱 → firebaseConfig 복사
+   아래 YOUR_... 값들을 본인의 프로젝트 값으로 교체하세요.
+══════════════════════════════════════════════════════════ */
+// For Firebase JS SDK v7.20.0 and later, measurementId is optional
+const FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBH0JumUzSq2ZVD-SziQvolWECH-RV4Lyw",
+  authDomain: "bingoruru-2b36f.firebaseapp.com",
+  projectId: "bingoruru-2b36f",
+  storageBucket: "bingoruru-2b36f.firebasestorage.app",
+  messagingSenderId: "235000076475",
+  appId: "1:235000076475:web:c4eb0c178b4af91011719e",
+  measurementId: "G-11QQR9MV6C"
+};
+/* ══════════════════════════════════════════════════════════ */
+
+/* ═══════════════════════════════════════════
+   DEFAULT CONFIG (matches bingoruru_master.html)
+═══════════════════════════════════════════ */
+const DEFAULT_CONFIG = {
+  GAME_DURATION: 600,
+  MAX_ROUNDS: 3,
+  TOTAL_LULU: 24,
+  GOLDEN_COST: 6,
+  GRID_SIZE: 16,
+};
+
+/* ═══════════════════════════════════════════
+   FIREBASE & CATEGORIES
+═══════════════════════════════════════════ */
+let _db = null;              // Firestore 인스턴스
+let _cats = [];              // 기본값: FALLBACK, Firebase 연결 시 덮어씀
+let _scoresCache = {};       // { 'YYYY-MM-DD': {playCount, scores[], ...} }
+let _fbReady = false;        // Firebase 초기화 완료 여부
+
+const FALLBACK_CATEGORIES = [
+  {
+    id:'delivery', icon:'🛵', name:'한국인이 사랑하는 배달음식 메뉴 30선', desc:'배달음식 TOP 30', order:0,
+    top5:["치킨","피자","족발","짜장면","떡볶이"],
+    pool:["보쌈","순대","라면","짬뽕","초밥","햄버거","삼겹살","갈비찜","파스타","마라탕","쌀국수","우동","돈까스","감자탕","곱창","닭갈비","부대찌개","냉면","국밥","김치찌개","볶음밥","탕수육","양꼬치","샤브샤브","곰탕"]
+  },{
+    id:'subway', icon:'🚇', name:'일일 이용객이 가장 많은 서울 지하철역 30선', desc:'지하철역 TOP 30', order:1,
+    top5:["강남","홍대입구","잠실","신림","구로디지털단지"],
+    pool:["신도림","서울역","삼성","선릉","역삼","종로3가","건대입구","신촌","합정","사당","노원","수유","왕십리","교대","서초","영등포구청","신당","동대문역사문화공원","을지로입구","종각","시청","이태원","여의도","고속터미널","강변"]
+  },{
+    id:'travel', icon:'✈️', name:'한국인이 가장 많이 찾는 외국 여행지(도시) 30선', desc:'해외여행 TOP 30', order:2,
+    top5:["도쿄","오사카","방콕","파리","싱가포르"],
+    pool:["홍콩","런던","로마","바르셀로나","뉴욕","발리","세부","다낭","호찌민","타이베이","상하이","시드니","두바이","이스탄불","암스테르담","프라하","빈","마드리드","취리히","뮌헨","하노이","베이징","멜버른","리스본","베를린"]
+  }
+];
+
+// Firebase 연결 전에도 기본 카테고리 표시
+_cats = [...FALLBACK_CATEGORIES];
+
+/* Firebase 초기화 + 실시간 카테고리 구독 */
+function initFirebase() {
+  try {
+    if (!firebase.apps.length) {
+      firebase.initializeApp(FIREBASE_CONFIG);
+    }
+    _db = firebase.firestore();
+
+    setFbStatus('연결 중...');
+
+    // ① 실시간 리스너: 카테고리 컬렉션
+    _db.collection('categories').orderBy('order').onSnapshot(snap => {
+      _cats = snap.docs.map(d => ({ ...d.data(), id: d.id }));
+      _fbReady = true;
+      setFbStatus('연결됨 ✓', true);
+      const active = document.querySelector('.page.active')?.id?.replace('page-', '');
+      if (active) renderPage(active);
+    }, err => {
+      console.warn('[Admin] categories 오류:', err);
+      _cats = [...FALLBACK_CATEGORIES];
+      setFbStatus('연결 실패 — 기본 데이터', false);
+      renderPage('dashboard');
+    });
+
+    // ② 실시간 리스너: 점수 컬렉션 (Document ID = YYYY-MM-DD)
+    _db.collection('scores').onSnapshot(snap => {
+      _scoresCache = {};
+      snap.docs.forEach(d => { _scoresCache[d.id] = d.data(); });
+      const active = document.querySelector('.page.active')?.id?.replace('page-', '');
+      if (active === 'dashboard' || active === 'scores') renderPage(active);
+    }, err => {
+      console.warn('[Admin] scores 오류:', err);
+    });
+  } catch(e) {
+    console.error('[Admin] Firebase 초기화 실패:', e);
+    _cats = [...FALLBACK_CATEGORIES];
+    setFbStatus('설정 오류', false);
+    renderPage('dashboard');
+  }
+}
+
+function setFbStatus(msg, ok) {
+  const el = document.getElementById('fb-status');
+  if (!el) return;
+  el.textContent = 'Firebase: ' + msg;
+  el.style.color = ok === true ? '#5EA34B' : ok === false ? '#C0392B' : '#BA7517';
+}
+
+function getCategories() { return _cats; }
+
+/* Firestore에 카테고리 1개 저장/업데이트 */
+async function saveOneCat(cat) {
+  if (!_db) throw new Error('Firebase 미연결');
+  await _db.collection('categories').doc(cat.id).set(cat);
+}
+
+/* Firestore에서 카테고리 1개 삭제 */
+async function deleteOneCat(id) {
+  if (!_db) throw new Error('Firebase 미연결');
+  await _db.collection('categories').doc(id).delete();
+}
+
+// Firestore _scoresCache 우선, 없으면 localStorage 폴백
+function getDayData(key) {
+  if (_scoresCache[key]) return _scoresCache[key];
+  try {
+    const d = JSON.parse(localStorage.getItem('br_day_' + key) || 'null');
+    return d || { playCount:0, scores:[], ranked:false, playedCats:[] };
+  } catch { return { playCount:0, scores:[], ranked:false, playedCats:[] }; }
+}
+
+function todayKey() {
+  const now = new Date(Date.now() + 9 * 60 * 60 * 1000);
+  return now.toISOString().slice(0, 10);
+}
+
+function dateKey(d) {
+  const kst = new Date(d.getTime() + 9 * 60 * 60 * 1000);
+  return kst.toISOString().slice(0, 10);
+}
+
+function getConfig() {
+  try {
+    const d = JSON.parse(localStorage.getItem('br_admin_config') || 'null');
+    return { ...DEFAULT_CONFIG, ...(d||{}) };
+  } catch { return { ...DEFAULT_CONFIG }; }
+}
+
+function saveConfig(cfg) {
+  localStorage.setItem('br_admin_config', JSON.stringify(cfg));
+}
+
+function getStoredNick() { return localStorage.getItem('br_nickname') || ''; }
+function getStoredNicks() {
+  try { return JSON.parse(localStorage.getItem('br_all_nicks') || '[]'); } catch { return []; }
+}
+
+function showToast(msg, duration = 2200) {
+  const t = document.getElementById('toast');
+  t.textContent = msg;
+  t.classList.add('show');
+  setTimeout(() => t.classList.remove('show'), duration);
+}
+
+function confirm2(msg) {
+  return window.confirm(msg);
+}
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+const PAGE_TITLES = {
+  dashboard: '개요',
+  categories: '카테고리 관리',
+  scores: '일별 점수 현황',
+  users: '닉네임 관리',
+  'custom-games': '커스텀 게임 관리',
+  'maker-ranking': '메이커 랭킹',
+  settings: '게임 설정',
+  storage: '스토리지 관리',
+};
+
+document.querySelectorAll('.sb-item').forEach(item => {
+  item.addEventListener('click', () => {
+    const page = item.dataset.page;
+    navigateTo(page);
+  });
+});
+
+function navigateTo(page) {
+  document.querySelectorAll('.sb-item').forEach(i => i.classList.toggle('active', i.dataset.page === page));
+  document.querySelectorAll('.page').forEach(p => p.classList.toggle('active', p.id === 'page-' + page));
+  document.getElementById('topbar-title').textContent = PAGE_TITLES[page] || page;
+  renderPage(page);
+}
+
+function renderPage(page) {
+  if (page === 'dashboard') renderDashboard();
+  else if (page === 'categories') renderCategories();
+  else if (page === 'scores') renderScores();
+  else if (page === 'users') renderUsers();
+  else if (page === 'custom-games') loadCustomGames();
+  else if (page === 'maker-ranking') loadMakerRanking();
+  else if (page === 'settings') renderSettings();
+  else if (page === 'storage') renderStorage();
+}
+
+/* ═══════════════════════════════════════════
+   DASHBOARD
+═══════════════════════════════════════════ */
+// Firestore 캐시 우선, 없으면 localStorage 폴백
+function getAllBrDayKeys() {
+  const fromFirestore = Object.keys(_scoresCache);
+  if (fromFirestore.length > 0) return fromFirestore.sort().reverse();
+  const keys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('br_day_')) keys.push(k.replace('br_day_', ''));
+  }
+  return keys.sort().reverse();
+}
+
+function renderDashboard() {
+  const today = todayKey();
+  const todayData = getDayData(today);
+  const allNicks = getStoredNicks();
+  const allKeys = getAllBrDayKeys();
+
+  // Count total plays across all days
+  let totalPlays = 0;
+  let totalRanked = 0;
+  allKeys.forEach(k => {
+    const d = getDayData(k);
+    totalPlays += d.playCount || 0;
+    if (d.ranked) totalRanked++;
+  });
+
+  const todayScores = (todayData.scores || []);
+  const todayCumul = todayScores.reduce((a, b) => a + (b || 0), 0);
+
+  document.getElementById('stat-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">오늘 플레이 수</div>
+      <div class="stat-val">${todayData.playCount}</div>
+      <div class="stat-sub">/ ${getConfig().MAX_ROUNDS}판 최대</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">오늘 누적 점수</div>
+      <div class="stat-val">${fmt(todayCumul)}</div>
+      <div class="stat-sub">점</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">등록 닉네임</div>
+      <div class="stat-val">${allNicks.length}</div>
+      <div class="stat-sub">명</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">총 기록 날짜</div>
+      <div class="stat-val">${allKeys.length}</div>
+      <div class="stat-sub">일</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">카테고리 수</div>
+      <div class="stat-val">${getCategories().length}</div>
+      <div class="stat-sub">개</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">오늘 랭킹 등록</div>
+      <div class="stat-val">${todayData.ranked ? '✅' : '—'}</div>
+      <div class="stat-sub">${todayData.ranked ? '완주 완료' : '미완주'}</div>
+    </div>
+  `;
+
+  // Top 10 today
+  const nick = getStoredNick();
+  const top10html = todayScores.length === 0
+    ? '<div class="empty-state"><div class="empty-state-icon">🏆</div><div class="empty-state-text">오늘 점수 기록이 없습니다.</div></div>'
+    : (() => {
+        const rows = todayScores.map((sc, i) => `
+          <div style="display:flex;align-items:center;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+            <span style="width:24px;font-weight:700;color:var(--text-muted);">${i+1}</span>
+            <span style="flex:1;font-weight:600;">판 ${i+1}</span>
+            <span style="font-weight:700;color:var(--sky-text);">${fmt(sc)}점</span>
+          </div>`).join('');
+        return `<div>${rows}<div style="display:flex;justify-content:space-between;padding:7px 0 0;font-weight:700;font-size:12px;"><span>합계</span><span style="color:var(--sky-text);">${fmt(todayCumul)}점</span></div></div>`;
+      })();
+  document.getElementById('dash-top10').innerHTML = top10html;
+
+  // Category play stat
+  const cats = getCategories();
+  const playedCats = todayData.playedCats || [];
+  const catStatHtml = cats.map(c => `
+    <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+      <span>${c.icon}</span>
+      <span style="flex:1;">${c.desc}</span>
+      <span class="badge ${playedCats.includes(c.id) ? 'badge-green' : 'badge-blue'}">${playedCats.includes(c.id) ? '플레이됨' : '미플레이'}</span>
+    </div>`).join('');
+  document.getElementById('dash-cat-stat').innerHTML = catStatHtml || '<div class="empty-state"><div class="empty-state-text">카테고리 없음</div></div>';
+
+  // Weekly summary
+  const weekHtml = (() => {
+    const rows = [];
+    for (let i = 6; i >= 0; i--) {
+      const d = new Date();
+      d.setDate(d.getDate() - i);
+      const k = dateKey(d);
+      const data = getDayData(k);
+      const cumul = (data.scores || []).reduce((a, b) => a + b, 0);
+      const isToday = k === today;
+      rows.push(`
+        <div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+          <span style="width:80px;color:var(--text-muted);">${k.slice(5)} ${isToday ? '(오늘)' : ''}</span>
+          <div style="flex:1;height:8px;background:var(--surface2);border-radius:4px;overflow:hidden;">
+            <div style="height:100%;background:var(--sky);width:${Math.min(100, data.playCount / getConfig().MAX_ROUNDS * 100)}%;"></div>
+          </div>
+          <span style="width:40px;text-align:center;">${data.playCount}판</span>
+          <span style="width:60px;text-align:right;font-weight:700;color:var(--sky-text);">${cumul > 0 ? fmt(cumul)+'점' : '—'}</span>
+        </div>`);
+    }
+    return rows.join('');
+  })();
+  document.getElementById('dash-weekly').innerHTML = weekHtml;
+
+  // Load async custom game stats
+  loadDashCustomGames();
+  loadDashMakerTop();
+}
+
+async function loadDashCustomGames() {
+  const el = document.getElementById('dash-custom-games');
+  if (!el) return;
+  if (!_db) { el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">Firebase 미연결</div>'; return; }
+  try {
+    const snap = await _db.collection('custom_games').get();
+    const all = snap.docs.map(d => d.data());
+    const total = all.length;
+    const publicCount = all.filter(g => g.status === 'public').length;
+    const pendingCount = all.filter(g => g.status !== 'public' && (g.ratingCount || 0) > 0).length;
+    const totalPlays = all.reduce((s, g) => s + (g.playCount || 0), 0);
+
+    // Update sidebar badge
+    const sbBadge = document.getElementById('sb-pending-badge');
+    if (sbBadge) sbBadge.textContent = pendingCount > 0 ? pendingCount : '';
+
+    el.innerHTML = `
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:.5rem;">
+        <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:8px 10px;">
+          <div style="font-size:10px;color:var(--text-muted);">전체 게임</div>
+          <div style="font-size:20px;font-weight:800;color:var(--sky-text);">${total}</div>
+        </div>
+        <div style="background:var(--success-bg);border-radius:var(--radius-sm);padding:8px 10px;">
+          <div style="font-size:10px;color:var(--success-text);">공개 중</div>
+          <div style="font-size:20px;font-weight:800;color:var(--success-text);">${publicCount}</div>
+        </div>
+      </div>
+      ${pendingCount > 0 ? `<div style="background:var(--lulu-bg);border:1px solid var(--lulu-border);border-radius:var(--radius-sm);padding:7px 10px;font-size:11px;font-weight:700;color:var(--lulu-text);margin-bottom:.5rem;">⏳ 심사 대기 중: ${pendingCount}개</div>` : ''}
+      <div style="font-size:11px;color:var(--text-muted);">총 플레이: <strong style="color:var(--text);">${totalPlays.toLocaleString()}</strong>회</div>
+      <div style="margin-top:.5rem;"><button class="btn btn-primary btn-xs" onclick="navigateTo('custom-games')">게임 관리 →</button></div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="font-size:11px;color:var(--danger-text);">로드 실패</div>`;
+  }
+}
+
+async function loadDashMakerTop() {
+  const el = document.getElementById('dash-maker-top');
+  if (!el) return;
+  if (!_db) { el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">Firebase 미연결</div>'; return; }
+  try {
+    const snap = await _db.collection('maker_ranking').orderBy('score', 'desc').limit(5).get();
+    if (snap.empty) { el.innerHTML = '<div style="font-size:11px;color:var(--text-muted);">아직 메이커가 없습니다.</div>'; return; }
+    el.innerHTML = snap.docs.map((d, i) => {
+      const m = d.data();
+      const medal = ['🥇','🥈','🥉','4위','5위'][i];
+      return `<div style="display:flex;align-items:center;gap:8px;padding:5px 0;border-bottom:1px solid var(--border);font-size:12px;">
+        <span style="width:24px;">${medal}</span>
+        <span style="flex:1;font-weight:600;">${m.creatorNick || d.id}</span>
+        <span style="color:var(--sky-text);font-weight:700;">${fmt(m.score || 0)}점</span>
+        <span style="color:var(--text-muted);font-size:10px;">${m.gameCount || 0}게임</span>
+      </div>`;
+    }).join('') + `<div style="margin-top:.5rem;"><button class="btn btn-ghost btn-xs" onclick="navigateTo('maker-ranking')">전체 보기 →</button></div>`;
+  } catch(e) {
+    el.innerHTML = `<div style="font-size:11px;color:var(--danger-text);">로드 실패</div>`;
+  }
+}
+
+/* ═══════════════════════════════════════════
+   CATEGORIES
+═══════════════════════════════════════════ */
+let editingCatIdx = -1;
+
+function renderCategories() {
+  const cats = getCategories();
+  document.getElementById('cat-count').textContent = cats.length;
+  const grid = document.getElementById('cat-admin-grid');
+  grid.innerHTML = '';
+
+  cats.forEach((cat, idx) => {
+    const allWords = [...(cat.top5||[]), ...(cat.pool||[])];
+    const card = document.createElement('div');
+    card.className = 'cat-admin-card';
+
+    const top5Tags = (cat.top5||[]).map(w => `
+      <span class="word-tag top5">★ ${w} <span class="word-tag-del" onclick="removeWord(${idx},'top5','${escHtml(w)}')">×</span></span>`).join('');
+    const poolTags = (cat.pool||[]).map(w => `
+      <span class="word-tag">${w} <span class="word-tag-del" onclick="removeWord(${idx},'pool','${escHtml(w)}')">×</span></span>`).join('');
+
+    card.innerHTML = `
+      <div class="cat-admin-header">
+        <span class="cat-admin-icon">${cat.icon}</span>
+        <div>
+          <div class="cat-admin-name">${cat.name}</div>
+          <div class="cat-admin-id">ID: ${cat.id} · ${allWords.length}단어</div>
+        </div>
+      </div>
+      <div style="font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">TOP 5 (항상 포함)</div>
+      <div class="word-tags">${top5Tags}</div>
+      <div style="font-size:10px;font-weight:700;color:var(--text-muted);margin-bottom:5px;">POOL (${(cat.pool||[]).length}개)</div>
+      <div class="word-tags" style="max-height:120px;overflow-y:auto;">${poolTags}</div>
+      <div class="form-row" style="margin-top:.8rem;">
+        <input class="form-input" id="word-input-${idx}" placeholder="단어 추가..." style="flex:1;"/>
+        <select class="form-input" id="word-type-${idx}" style="width:80px;">
+          <option value="pool">pool</option>
+          <option value="top5">top5</option>
+        </select>
+        <button class="btn btn-success btn-sm" onclick="addWord(${idx})">추가</button>
+      </div>
+      <div style="display:flex;gap:6px;margin-top:.5rem;">
+        <button class="btn btn-ghost btn-sm" onclick="openEditCatModal(${idx})" style="flex:1;">✏️ 편집</button>
+        <button class="btn btn-danger btn-sm" onclick="deleteCat(${idx})" style="flex:1;">🗑 삭제</button>
+      </div>`;
+    grid.appendChild(card);
+  });
+
+  if (cats.length === 0) {
+    grid.innerHTML = '<div class="empty-state" style="grid-column:1/-1;"><div class="empty-state-icon">🗂️</div><div class="empty-state-text">카테고리가 없습니다. 추가해보세요!</div></div>';
+  }
+}
+
+function escHtml(s) {
+  return String(s).replace(/'/g, "\\'");
+}
+
+async function addWord(idx) {
+  const input = document.getElementById('word-input-' + idx);
+  const typeEl = document.getElementById('word-type-' + idx);
+  const word = input.value.trim();
+  const type = typeEl.value;
+  if (!word) return;
+
+  const cat = { ...getCategories()[idx] };
+  const all = [...(cat.top5||[]), ...(cat.pool||[])];
+
+  if (all.includes(word)) { showToast('이미 존재하는 단어입니다.'); return; }
+  if (type === 'top5') {
+    if ((cat.top5||[]).length >= 5) { showToast('TOP5는 최대 5개입니다.'); return; }
+    cat.top5 = [...(cat.top5||[]), word];
+  } else {
+    cat.pool = [...(cat.pool||[]), word];
+  }
+  try {
+    await saveOneCat(cat);
+    input.value = '';
+    showToast(`"${word}" 추가 완료`);
+  } catch(e) { showToast('저장 실패: ' + e.message); }
+}
+
+async function removeWord(idx, type, word) {
+  const cat = { ...getCategories()[idx] };
+  if (type === 'top5') cat.top5 = (cat.top5||[]).filter(w => w !== word);
+  else cat.pool = (cat.pool||[]).filter(w => w !== word);
+  try {
+    await saveOneCat(cat);
+    showToast(`"${word}" 삭제됨`);
+  } catch(e) { showToast('저장 실패: ' + e.message); }
+}
+
+async function deleteCat(idx) {
+  const cats = getCategories();
+  if (!confirm2(`"${cats[idx].name}" 카테고리를 삭제하시겠습니까?`)) return;
+  try {
+    await deleteOneCat(cats[idx].id);
+    showToast('카테고리 삭제됨');
+  } catch(e) { showToast('삭제 실패: ' + e.message); }
+}
+
+function openAddCatModal() {
+  editingCatIdx = -1;
+  document.getElementById('cat-modal-title').textContent = '카테고리 추가';
+  ['cat-icon','cat-id','cat-name','cat-desc','cat-top5','cat-pool'].forEach(id => {
+    document.getElementById(id).value = '';
+  });
+  document.getElementById('cat-modal').classList.add('show');
+}
+
+function openEditCatModal(idx) {
+  editingCatIdx = idx;
+  const cat = getCategories()[idx];
+  document.getElementById('cat-modal-title').textContent = '카테고리 편집';
+  document.getElementById('cat-icon').value = cat.icon || '';
+  document.getElementById('cat-id').value = cat.id || '';
+  document.getElementById('cat-name').value = cat.name || '';
+  document.getElementById('cat-desc').value = cat.desc || '';
+  document.getElementById('cat-top5').value = (cat.top5||[]).join(',');
+  document.getElementById('cat-pool').value = (cat.pool||[]).join(',');
+  document.getElementById('cat-modal').classList.add('show');
+}
+
+function closeCatModal() {
+  document.getElementById('cat-modal').classList.remove('show');
+}
+
+async function saveCat() {
+  const icon = document.getElementById('cat-icon').value.trim();
+  const id = document.getElementById('cat-id').value.trim();
+  const name = document.getElementById('cat-name').value.trim();
+  const desc = document.getElementById('cat-desc').value.trim();
+  const top5raw = document.getElementById('cat-top5').value.trim();
+  const poolRaw = document.getElementById('cat-pool').value.trim();
+
+  if (!id || !name) { showToast('ID와 이름은 필수입니다.'); return; }
+
+  const top5 = top5raw.split(',').map(s => s.trim()).filter(Boolean);
+  const pool = poolRaw.split(',').map(s => s.trim()).filter(Boolean);
+
+  if (top5.length !== 5) { showToast('TOP5는 정확히 5개여야 합니다.'); return; }
+
+  const cats = getCategories();
+  const isNew = editingCatIdx < 0;
+
+  if (isNew && cats.find(c => c.id === id)) { showToast('이미 존재하는 ID입니다.'); return; }
+
+  const order = isNew ? cats.length : (cats[editingCatIdx]?.order ?? editingCatIdx);
+  const newCat = { id, icon: icon || '🎯', name, desc: desc || name, top5, pool, order };
+
+  try {
+    await saveOneCat(newCat);
+    closeCatModal();
+    showToast(isNew ? '카테고리 추가 완료 ✓' : '카테고리 수정 완료 ✓');
+  } catch(e) { showToast('저장 실패: ' + e.message); }
+}
+
+/* ═══════════════════════════════════════════
+   SCORES
+═══════════════════════════════════════════ */
+let scoreViewDate = todayKey();
+
+function scoreNavDate(dir) {
+  const d = new Date(scoreViewDate + 'T00:00:00+09:00');
+  d.setDate(d.getDate() + dir);
+  scoreViewDate = d.toISOString().slice(0, 10);
+  renderScores();
+}
+
+function scoreGoToday() {
+  scoreViewDate = todayKey();
+  renderScores();
+}
+
+function renderScores() {
+  document.getElementById('score-date-label').textContent = scoreViewDate + (scoreViewDate === todayKey() ? ' (오늘)' : '');
+  const data = getDayData(scoreViewDate);
+  const scores = data.scores || [];
+  const cumul = scores.reduce((a, b) => a + b, 0);
+  const cats = getCategories();
+  const playedCats = (data.playedCats || []).map(id => {
+    const c = cats.find(cat => cat.id === id);
+    return c ? `${c.icon} ${c.desc}` : id;
+  });
+
+  document.getElementById('score-stat-grid').innerHTML = `
+    <div class="stat-card">
+      <div class="stat-label">플레이 판수</div>
+      <div class="stat-val">${data.playCount}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">누적 점수</div>
+      <div class="stat-val">${fmt(cumul)}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">랭킹 등록</div>
+      <div class="stat-val">${data.ranked ? '✅' : '—'}</div>
+    </div>
+    <div class="stat-card">
+      <div class="stat-label">플레이된 카테고리</div>
+      <div class="stat-val" style="font-size:13px;">${playedCats.join(', ') || '—'}</div>
+    </div>
+  `;
+
+  const nick = getStoredNick();
+  const tbody = document.getElementById('score-tbody');
+  if (scores.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:2rem;">이 날의 점수 기록이 없습니다.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = scores.map((sc, i) => {
+    const catId = (data.playedCats || [])[i];
+    const cat = cats.find(c => c.id === catId);
+    return `<tr>
+      <td>${i+1}</td>
+      <td>${nick ? `<span class="badge badge-blue">👤 ${nick}</span>` : '<span class="badge">미설정</span>'}</td>
+      <td>${cat ? `${cat.icon} ${cat.desc}` : (catId || '—')}</td>
+      <td>판 ${i+1}</td>
+      <td style="font-weight:700;color:var(--sky-text);">${fmt(sc)}점</td>
+      <td><span class="badge ${i === scores.length - 1 && data.ranked ? 'badge-gold' : 'badge-blue'}">${i === scores.length - 1 && data.ranked ? '🏆 등록됨' : '기록'}</span></td>
+    </tr>`;
+  }).join('');
+
+  // Total row
+  tbody.innerHTML += `<tr style="background:var(--sky-pale);">
+    <td colspan="4" style="font-weight:700;text-align:right;">합계</td>
+    <td style="font-weight:800;color:var(--sky-text);font-size:14px;">${fmt(cumul)}점</td>
+    <td></td>
+  </tr>`;
+}
+
+/* ═══════════════════════════════════════════
+   USERS
+═══════════════════════════════════════════ */
+function renderUsers() {
+  renderNickTable();
+}
+
+function renderNickTable() {
+  const nicks = getStoredNicks();
+  const currentNick = getStoredNick();
+  const search = (document.getElementById('nick-search')?.value || '').toLowerCase();
+  const filtered = nicks.filter(n => n.toLowerCase().includes(search));
+
+  document.getElementById('nick-count-badge').textContent = nicks.length + '명';
+
+  const tbody = document.getElementById('nick-tbody');
+  if (filtered.length === 0) {
+    tbody.innerHTML = '<tr><td colspan="4" style="text-align:center;color:var(--text-muted);padding:2rem;">닉네임이 없습니다.</td></tr>';
+    return;
+  }
+
+  tbody.innerHTML = filtered.map((nick, i) => `
+    <tr>
+      <td>${nicks.indexOf(nick) + 1}</td>
+      <td style="font-weight:600;">${nick}</td>
+      <td>${nick === currentNick ? '<span class="badge badge-green">현재 사용자</span>' : ''}</td>
+      <td style="white-space:nowrap;">
+        <button class="btn btn-primary btn-xs" onclick="lookupUserByNick('${escHtml(nick)}')">조회</button>
+        <button class="btn btn-ghost btn-xs" style="margin-left:3px;" onclick="setCurrentNick('${escHtml(nick)}')">현재 설정</button>
+        <button class="btn btn-danger btn-xs" style="margin-left:3px;" onclick="deleteNick('${escHtml(nick)}')">삭제</button>
+      </td>
+    </tr>`).join('');
+}
+
+function setCurrentNick(nick) {
+  localStorage.setItem('br_nickname', nick);
+  renderNickTable();
+  showToast(`"${nick}"으로 변경됨`);
+}
+
+function deleteNick(nick) {
+  if (!confirm2(`"${nick}" 닉네임을 삭제하시겠습니까?`)) return;
+  const nicks = getStoredNicks().filter(n => n !== nick);
+  localStorage.setItem('br_all_nicks', JSON.stringify(nicks));
+  if (getStoredNick() === nick) localStorage.removeItem('br_nickname');
+  renderNickTable();
+  showToast(`"${nick}" 삭제됨`);
+}
+
+function lookupUser() {
+  const nick = document.getElementById('user-lookup-input')?.value.trim();
+  if (!nick) return;
+  lookupUserByNick(nick);
+}
+
+async function lookupUserByNick(nick) {
+  // 검색창에 값 채우기 (목록에서 조회 버튼 클릭 시)
+  const inp = document.getElementById('user-lookup-input');
+  if (inp) inp.value = nick;
+
+  const el = document.getElementById('user-lookup-result');
+  el.innerHTML = `<div style="font-size:12px;color:var(--text-muted);padding:.5rem 0;">조회 중...</div>`;
+
+  const results = { maker: null, games: [], plays: [] };
+
+  try {
+    if (_db) {
+      // 메이커 랭킹 조회
+      const mrSnap = await _db.collection('maker_ranking').doc(nick).get();
+      if (mrSnap.exists) results.maker = mrSnap.data();
+
+      // 제작한 커스텀 게임 조회
+      const gSnap = await _db.collection('custom_games').where('creatorNick', '==', nick).limit(20).get();
+      results.games = gSnap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+      // 참여한 커스텀 게임 중 plays 배열에 닉네임이 있는 것
+      const playSnap = await _db.collection('custom_games').where('uniquePlayers', 'array-contains', nick).limit(20).get();
+      results.plays = playSnap.docs.map(d => {
+        const data = d.data();
+        const myPlays = (data.plays || []).filter(p => p.nick === nick);
+        const best = myPlays.length ? Math.max(...myPlays.map(p => p.score || 0)) : 0;
+        return { id: d.id, topic: data.topic, icon: data.icon, best, count: myPlays.length };
+      });
+    }
+  } catch(e) {
+    console.warn('유저 조회 실패:', e);
+  }
+
+  // 렌더링
+  const makerHtml = results.maker ? `
+    <div style="background:var(--lulu-bg);border:1px solid var(--lulu-border);border-radius:var(--radius-sm);padding:.7rem 1rem;margin-bottom:.7rem;">
+      <div style="font-size:11px;font-weight:700;color:var(--lulu-text);margin-bottom:.4rem;">🏅 메이커 정보</div>
+      <div style="display:grid;grid-template-columns:repeat(4,1fr);gap:6px;">
+        <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">점수</div><div style="font-size:16px;font-weight:800;color:var(--sky-text);">${fmt(results.maker.score || 0)}</div></div>
+        <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">총 플레이</div><div style="font-size:16px;font-weight:800;">${results.maker.totalPlays || 0}</div></div>
+        <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">참여자</div><div style="font-size:16px;font-weight:800;">${results.maker.uniquePlayers || 0}</div></div>
+        <div style="text-align:center;"><div style="font-size:9px;color:var(--text-muted);">게임 수</div><div style="font-size:16px;font-weight:800;">${results.maker.gameCount || 0}</div></div>
+      </div>
+    </div>` : '';
+
+  const gamesHtml = results.games.length > 0 ? `
+    <div style="margin-bottom:.7rem;">
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:.4rem;">🎮 제작한 커스텀 게임 (${results.games.length}개)</div>
+      ${results.games.map(g => {
+        const statusCls = g.status === 'public' ? 'badge-public' : 'badge-private';
+        const statusTxt = g.status === 'public' ? '공개' : '비공개';
+        return `<div class="user-game-item">
+          <span class="user-game-topic">${g.icon || '🎮'} ${g.topic}</span>
+          <span class="badge ${statusCls}" style="margin-left:6px;">${statusTxt}</span>
+          <div class="user-game-meta">플레이 ${g.playCount || 0}회 · 참여자 ${(g.uniquePlayers || []).length}명 · 별점 ${g.ratingCount > 0 ? `★${(g.ratingAvg||0).toFixed(1)}` : '없음'}
+            <button class="btn btn-primary btn-xs" style="margin-left:8px;" onclick="openCGDetail('${g.id}')">상세</button>
+          </div>
+        </div>`;
+      }).join('')}
+    </div>` : '';
+
+  const playsHtml = results.plays.length > 0 ? `
+    <div>
+      <div style="font-size:11px;font-weight:700;color:var(--text-muted);margin-bottom:.4rem;">🕹 참여한 커스텀 게임 (${results.plays.length}개)</div>
+      ${results.plays.map(p => `
+        <div class="user-game-item">
+          <span class="user-game-topic">${p.icon || '🎮'} ${p.topic}</span>
+          <div class="user-game-meta">${p.count}회 플레이 · 최고 ${fmt(p.best)}점
+            <button class="btn btn-ghost btn-xs" style="margin-left:8px;" onclick="openCGDetail('${p.id}')">게임 보기</button>
+          </div>
+        </div>`).join('')}
+    </div>` : '';
+
+  const noFirebase = !_db ? '<div style="font-size:11px;color:var(--text-muted);margin-bottom:.5rem;">⚠️ Firebase 미연결 — Firestore 정보 조회 불가</div>' : '';
+
+  el.innerHTML = `
+    <div style="border:1px solid var(--border);border-radius:var(--radius-sm);padding:.8rem;margin-top:.6rem;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:.8rem;">
+        <span style="font-size:16px;font-weight:800;">👤 ${nick}</span>
+        ${getStoredNick() === nick ? '<span class="badge badge-green">현재 사용자</span>' : ''}
+      </div>
+      ${noFirebase}
+      ${!results.maker && results.games.length === 0 && results.plays.length === 0 && _db
+        ? '<div style="font-size:12px;color:var(--text-muted);">Firestore에 관련 기록이 없습니다.</div>'
+        : makerHtml + gamesHtml + playsHtml}
+    </div>`;
+}
+
+/* ═══════════════════════════════════════════
+   SETTINGS
+═══════════════════════════════════════════ */
+const SETTING_META = [
+  { key:'GAME_DURATION', label:'게임 시간 (초)', desc:'한 판당 제한 시간. 기본 600초 (10분)' },
+  { key:'MAX_ROUNDS', label:'최대 판수', desc:'하루 최대 플레이 가능 판수. 기본 3판' },
+  { key:'TOTAL_LULU', label:'초기 루루 수', desc:'매 판 시작 시 주어지는 루루. 기본 24개' },
+  { key:'GOLDEN_COST', label:'골든루루 비용', desc:'골든루루 사용 시 차감되는 루루. 기본 6개' },
+  { key:'GRID_SIZE', label:'그리드 크기', desc:'빙고 타일 수 (4×4=16). 변경 비권장' },
+];
+
+function renderSettings() {
+  const cfg = getConfig();
+  document.getElementById('settings-rows').innerHTML = SETTING_META.map(m => `
+    <div class="setting-row">
+      <div class="setting-info">
+        <div class="setting-name">${m.label}</div>
+        <div class="setting-desc">${m.desc}</div>
+      </div>
+      <div class="setting-control">
+        <input class="number-input form-input" type="number" id="cfg-${m.key}" value="${cfg[m.key]}" min="1"/>
+      </div>
+    </div>`).join('');
+}
+
+function saveSettings() {
+  const cfg = {};
+  SETTING_META.forEach(m => {
+    const val = parseInt(document.getElementById('cfg-' + m.key)?.value || DEFAULT_CONFIG[m.key]);
+    cfg[m.key] = isNaN(val) ? DEFAULT_CONFIG[m.key] : val;
+  });
+  saveConfig(cfg);
+  showToast('설정 저장됨 ✓');
+}
+
+function resetSettings() {
+  if (!confirm2('설정을 기본값으로 초기화하시겠습니까?')) return;
+  localStorage.removeItem('br_admin_config');
+  renderSettings();
+  showToast('기본값으로 초기화됨');
+}
+
+/* ═══════════════════════════════════════════
+   CUSTOM GAMES
+═══════════════════════════════════════════ */
+let _cgFilter = 'all';
+
+function setCGFilter(f) {
+  _cgFilter = f;
+  document.querySelectorAll('[id^="cg-filter-"]').forEach(b => b.classList.remove('cg-filter-active'));
+  document.getElementById('cg-filter-' + f)?.classList.add('cg-filter-active');
+  loadCustomGames();
+}
+
+async function loadCustomGames() {
+  if (!_db) { showToast('Firebase 미연결'); return; }
+  const tbody = document.getElementById('cg-tbody');
+  tbody.innerHTML = '<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:1.5rem;">불러오는 중...</td></tr>';
+
+  try {
+    let query = _db.collection('custom_games').orderBy('createdAt', 'desc').limit(200);
+    const snap = await query.get();
+    const all = snap.docs.map(d => ({ id: d.id, ...d.data() }));
+
+    // Stats
+    const total = all.length;
+    const publicCount = all.filter(g => g.status === 'public').length;
+    const pendingCount = all.filter(g => g.status !== 'public' && (g.ratingCount || 0) > 0).length;
+    const privateCount = all.filter(g => g.status !== 'public' && (g.ratingCount || 0) === 0).length;
+    document.getElementById('cg-stat-grid').innerHTML = `
+      <div class="stat-card"><div class="stat-label">전체</div><div class="stat-val">${total}</div></div>
+      <div class="stat-card"><div class="stat-label">공개</div><div class="stat-val" style="color:var(--success-text);">${publicCount}</div></div>
+      <div class="stat-card"><div class="stat-label">심사중</div><div class="stat-val" style="color:var(--lulu-text);">${pendingCount}</div></div>
+      <div class="stat-card"><div class="stat-label">비공개</div><div class="stat-val" style="color:var(--text-muted);">${privateCount}</div></div>
+    `;
+
+    // Update sidebar badge with pending count
+    const sbBadge = document.getElementById('sb-pending-badge');
+    if (sbBadge) sbBadge.textContent = pendingCount > 0 ? pendingCount : '';
+
+    // Filter
+    let filtered = all;
+    if (_cgFilter === 'public') filtered = all.filter(g => g.status === 'public');
+    else if (_cgFilter === 'pending') filtered = all.filter(g => g.status !== 'public' && (g.ratingCount || 0) > 0);
+    else if (_cgFilter === 'private') filtered = all.filter(g => g.status !== 'public' && (g.ratingCount || 0) === 0);
+
+    if (filtered.length === 0) {
+      tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--text-muted);padding:2rem;">게임이 없습니다.</td></tr>`;
+      return;
+    }
+
+    tbody.innerHTML = filtered.map(g => {
+      const rc = g.ratingCount || 0;
+      const isPending = g.status !== 'public' && rc > 0;
+      const statusCls = g.status === 'public' ? 'badge-public' : isPending ? 'badge-pending' : 'badge-private';
+      const statusTxt = g.status === 'public' ? '🌐 공개' : isPending ? `⏳ 심사(${rc}/10)` : '🔒 비공개';
+      const avgTxt = rc > 0 ? `★${(g.ratingAvg || 0).toFixed(1)}` : '—';
+      const createdAt = g.createdAt ? new Date(g.createdAt.seconds * 1000).toISOString().slice(0, 10) : '—';
+      const expiresAt = g.expiresAt ? new Date(g.expiresAt.seconds * 1000) : null;
+      const isExpired = expiresAt && new Date() > expiresAt && g.status !== 'public';
+      return `<tr${isExpired ? ' style="opacity:.5;"' : ''}>
+        <td><strong>${g.icon || '🎮'} ${g.topic || '—'}</strong>${isExpired ? ' <span class="badge badge-red">만료</span>' : ''}</td>
+        <td style="color:var(--text-sub);">${g.creatorNick || '익명'}</td>
+        <td><span class="badge ${statusCls}">${statusTxt}</span></td>
+        <td>${g.playCount || 0}</td>
+        <td>${(g.uniquePlayers || []).length}</td>
+        <td style="color:var(--gold);">${avgTxt}</td>
+        <td>${(g.keywords || []).length}</td>
+        <td style="font-size:11px;color:var(--text-muted);">${createdAt}</td>
+        <td style="white-space:nowrap;">
+          <button class="btn btn-primary btn-xs" style="margin-right:3px;" onclick="openCGDetail('${g.id}')">상세/편집</button>
+          ${g.status !== 'public' ? `<button class="btn btn-success btn-xs" style="margin-right:3px;" onclick="approveCustomGame('${g.id}')">공개</button>` : `<button class="btn btn-ghost btn-xs" style="margin-right:3px;" onclick="revokeCustomGame('${g.id}')">비공개</button>`}
+          <button class="btn btn-danger btn-xs" onclick="deleteCustomGame('${g.id}')">삭제</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    console.error(e);
+    tbody.innerHTML = `<tr><td colspan="9" style="text-align:center;color:var(--danger-text);padding:1.5rem;">로드 실패: ${e.message}</td></tr>`;
+  }
+}
+
+async function approveCustomGame(gameId) {
+  if (!_db) return;
+  if (!confirm2('이 게임을 공개 승인하시겠습니까?\n마스터 화면의 "유저 제출" 탭에 즉시 노출됩니다.')) return;
+  try {
+    await _db.collection('custom_games').doc(gameId).update({ status: 'public' });
+    showToast('공개 승인 완료 ✓ — 마스터 유저 제출 탭에서 확인하세요');
+    loadCustomGames();
+  } catch(e) { showToast('실패: ' + e.message); }
+}
+
+async function revokeCustomGame(gameId) {
+  if (!_db) return;
+  if (!confirm2('이 게임을 비공개로 전환하시겠습니까?')) return;
+  try {
+    await _db.collection('custom_games').doc(gameId).update({ status: 'private' });
+    showToast('비공개로 전환되었습니다');
+    loadCustomGames();
+  } catch(e) { showToast('실패: ' + e.message); }
+}
+
+async function deleteCustomGame(gameId) {
+  if (!_db) return;
+  if (!confirm2('이 커스텀 게임을 삭제하시겠습니까?\n플레이 기록도 함께 삭제됩니다.')) return;
+  try {
+    await _db.collection('custom_games').doc(gameId).delete();
+    showToast('게임이 삭제되었습니다');
+    closeCGDetail();
+    loadCustomGames();
+  } catch(e) { showToast('삭제 실패: ' + e.message); }
+}
+
+/* ── 커스텀 게임 상세/편집 모달 ── */
+let _cgdId = null;
+let _cgdKeywords = [];
+
+async function openCGDetail(gameId) {
+  if (!_db) { showToast('Firebase 미연결'); return; }
+  _cgdId = gameId;
+  _cgdKeywords = [];
+  setCGDTab('info');
+  document.getElementById('cg-detail-modal').classList.add('show');
+  // 로딩 상태
+  document.getElementById('cgd-icon').value = '🎮';
+  document.getElementById('cgd-topic').value = '불러오는 중...';
+  document.getElementById('cgd-stats').innerHTML = '';
+  document.getElementById('cgd-info-rows').innerHTML = '';
+
+  try {
+    const snap = await _db.collection('custom_games').doc(gameId).get();
+    if (!snap.exists) { showToast('게임을 찾을 수 없습니다.'); closeCGDetail(); return; }
+    const d = snap.data();
+
+    // 헤더
+    document.getElementById('cgd-icon').value = d.icon || '🎮';
+    document.getElementById('cgd-topic').value = d.topic || '';
+    const rc = d.ratingCount || 0;
+    const isPending = d.status !== 'public' && rc > 0;
+    const statusCls = d.status === 'public' ? 'badge-public' : isPending ? 'badge-pending' : 'badge-private';
+    const statusTxt = d.status === 'public' ? '🌐 공개' : isPending ? `⏳ 심사(${rc}/10)` : '🔒 비공개';
+    const badge = document.getElementById('cgd-status-badge');
+    badge.className = 'badge ' + statusCls;
+    badge.textContent = statusTxt;
+
+    // 상태 버튼 표시
+    document.getElementById('cgd-approve-btn').style.display = d.status !== 'public' ? '' : 'none';
+    document.getElementById('cgd-revoke-btn').style.display = d.status === 'public' ? '' : 'none';
+    document.getElementById('cgd-status-label').textContent =
+      d.status === 'public' ? '현재 공개 게임입니다.' :
+      isPending ? `심사 중 (별점 ${rc}개 / 10개 필요)` : '비공개 상태입니다.';
+
+    // 스탯
+    const createdAt = d.createdAt ? new Date(d.createdAt.seconds * 1000) : null;
+    const expiresAt = d.expiresAt ? new Date(d.expiresAt.seconds * 1000) : null;
+    const isExpired = expiresAt && new Date() > expiresAt && d.status !== 'public';
+    document.getElementById('cgd-stats').innerHTML = `
+      <div class="cgd-stat"><div class="cgd-stat-label">총 플레이</div><div class="cgd-stat-val">${d.playCount || 0}</div></div>
+      <div class="cgd-stat"><div class="cgd-stat-label">참여자 수</div><div class="cgd-stat-val">${(d.uniquePlayers || []).length}</div></div>
+      <div class="cgd-stat"><div class="cgd-stat-label">완주 수</div><div class="cgd-stat-val">${d.completionCount || 0}</div></div>
+    `;
+
+    // 기본 정보
+    document.getElementById('cgd-info-rows').innerHTML = `
+      <div style="background:var(--surface2);border-radius:var(--radius-sm);padding:.6rem .8rem;">
+        <div class="cgd-info-row"><span class="cgd-info-key">출제자</span><span class="cgd-info-val">${d.creatorNick || '익명'}</span></div>
+        <div class="cgd-info-row"><span class="cgd-info-key">게임 ID</span><span class="cgd-info-val" style="font-family:monospace;font-size:10px;">${gameId}</span></div>
+        <div class="cgd-info-row"><span class="cgd-info-key">생성일</span><span class="cgd-info-val">${createdAt ? createdAt.toLocaleString('ko-KR') : '—'}</span></div>
+        <div class="cgd-info-row"><span class="cgd-info-key">만료일</span><span class="cgd-info-val${isExpired ? ';color:var(--danger-text)' : ''}">${expiresAt ? expiresAt.toLocaleString('ko-KR') + (isExpired ? ' (만료됨)' : '') : '—'}</span></div>
+        <div class="cgd-info-row"><span class="cgd-info-key">키워드 수</span><span class="cgd-info-val">${(d.keywords || []).length}개</span></div>
+        <div class="cgd-info-row"><span class="cgd-info-key">평균 별점</span><span class="cgd-info-val">${rc > 0 ? `★ ${(d.ratingAvg || 0).toFixed(2)} (${rc}명)` : '없음'}</span></div>
+      </div>
+    `;
+
+    // 키워드 세팅
+    _cgdKeywords = [...(d.keywords || [])];
+    renderCGDKeywords();
+
+    // 플레이 기록
+    const plays = (d.plays || []).slice().reverse();
+    document.getElementById('cgd-plays-tbody').innerHTML = plays.length === 0
+      ? '<tr><td colspan="6" style="text-align:center;color:var(--text-muted);padding:1.5rem;">플레이 기록 없음</td></tr>'
+      : plays.map((p, i) => {
+          const ts = p.ts ? new Date(p.ts).toLocaleString('ko-KR') : '—';
+          return `<tr>
+            <td>${plays.length - i}</td>
+            <td style="font-weight:600;">${p.nick || '익명'}</td>
+            <td style="font-weight:700;color:var(--sky-text);">${fmt(p.score || 0)}점</td>
+            <td>${p.openCount || 0}/16</td>
+            <td>${p.bingoLines || 0}</td>
+            <td style="font-size:10px;color:var(--text-muted);">${ts}</td>
+          </tr>`;
+        }).join('');
+
+    // 별점/의견
+    const ratings = d.ratings || [];
+    const dist = {5:0, 4:0, 3:0, 2:0, 1:0};
+    ratings.forEach(r => { const k = Math.round(r.score); if (dist[k] !== undefined) dist[k]++; });
+    const avgRating = rc > 0 ? (ratings.reduce((a, b) => a + b.score, 0) / rc) : 0;
+    const barRows = [5,4,3,2,1].map(s => {
+      const cnt = dist[s] || 0;
+      const pct = rc > 0 ? Math.round(cnt / rc * 100) : 0;
+      return `<div class="rating-bar-row">
+        <span style="width:20px;text-align:right;">${s}★</span>
+        <div class="rating-bar-bg"><div class="rating-bar-fill" style="width:${pct}%"></div></div>
+        <span style="width:28px;color:var(--text-muted);">${cnt}명</span>
+      </div>`;
+    }).join('');
+    document.getElementById('cgd-rating-summary').innerHTML = rc === 0
+      ? '<div style="text-align:center;color:var(--text-muted);padding:1rem;font-size:12px;">아직 별점이 없습니다.</div>'
+      : `<div style="text-align:center;font-size:26px;font-weight:800;color:#F5C030;margin-bottom:.5rem;">${avgRating.toFixed(1)}<span style="font-size:13px;color:var(--text-muted);font-weight:400;"> / 5.0 (${rc}명)</span></div>${barRows}`;
+    const withComment = ratings.filter(r => r.comment).reverse();
+    document.getElementById('cgd-feedback-list').innerHTML = withComment.length === 0
+      ? '<div style="text-align:center;color:var(--text-muted);font-size:11px;padding:.5rem;">의견 없음</div>'
+      : withComment.map(r => `
+          <div class="feedback-item">
+            <span class="fi-star">★${r.score}</span>
+            <span class="fi-nick">${r.nick || '익명'}</span>
+            <span>${r.comment}</span>
+          </div>`).join('');
+  } catch(e) {
+    showToast('로드 실패: ' + e.message);
+  }
+}
+
+function closeCGDetail() {
+  document.getElementById('cg-detail-modal').classList.remove('show');
+  _cgdId = null;
+  _cgdKeywords = [];
+}
+
+function setCGDTab(tab) {
+  ['info','keywords','plays','ratings'].forEach(t => {
+    document.getElementById('cgd-tab-btn-' + t)?.classList.toggle('active', t === tab);
+    document.getElementById('cgd-tab-' + t)?.classList.toggle('active', t === tab);
+  });
+}
+
+function renderCGDKeywords() {
+  const el = document.getElementById('cgd-kw-list');
+  if (!el) return;
+  el.innerHTML = _cgdKeywords.map((w, i) => `
+    <span class="kw-tag${i < 5 ? ' top' : ''}">
+      ${i < 5 ? `<span style="font-size:9px;margin-right:2px;">TOP</span>` : ''}${w}
+      <span class="kw-tag-del" onclick="cgdRemoveKeyword(${i})">×</span>
+    </span>`).join('');
+  const countEl = document.getElementById('cgd-kw-count');
+  if (countEl) countEl.textContent = `총 ${_cgdKeywords.length}개 (TOP5: 앞 5개)`;
+}
+
+function cgdAddKeyword() {
+  const inp = document.getElementById('cgd-kw-input');
+  const w = inp.value.trim();
+  if (!w) return;
+  if (_cgdKeywords.includes(w)) { showToast('이미 있는 키워드입니다.'); return; }
+  _cgdKeywords.push(w);
+  inp.value = '';
+  renderCGDKeywords();
+}
+
+function cgdRemoveKeyword(idx) {
+  _cgdKeywords.splice(idx, 1);
+  renderCGDKeywords();
+}
+
+async function saveCGDetail() {
+  if (!_db || !_cgdId) return;
+  const icon = document.getElementById('cgd-icon').value.trim() || '🎮';
+  const topic = document.getElementById('cgd-topic').value.trim();
+  if (!topic) { showToast('주제를 입력해주세요.'); return; }
+  if (_cgdKeywords.length < 16) { showToast(`키워드가 ${_cgdKeywords.length}개입니다. 최소 16개 필요.`); return; }
+  try {
+    await _db.collection('custom_games').doc(_cgdId).update({ icon, topic, keywords: [..._cgdKeywords] });
+    showToast('저장 완료 ✓');
+    loadCustomGames();
+    // 헤더 갱신
+    document.getElementById('cgd-icon').value = icon;
+    document.getElementById('cgd-topic').value = topic;
+  } catch(e) { showToast('저장 실패: ' + e.message); }
+}
+
+async function cgdApprove() {
+  if (!_db || !_cgdId) return;
+  if (!confirm2('이 게임을 공개 승인하시겠습니까?\n마스터 화면의 "유저 제출" 탭에 즉시 노출됩니다.')) return;
+  try {
+    await _db.collection('custom_games').doc(_cgdId).update({ status: 'public' });
+    showToast('공개 승인 완료 ✓');
+    // 상태 표시 즉시 갱신
+    const badge = document.getElementById('cgd-status-badge');
+    badge.className = 'badge badge-public';
+    badge.textContent = '🌐 공개';
+    document.getElementById('cgd-approve-btn').style.display = 'none';
+    document.getElementById('cgd-revoke-btn').style.display = '';
+    document.getElementById('cgd-status-label').textContent = '현재 공개 게임입니다.';
+    loadCustomGames();
+  } catch(e) { showToast('실패: ' + e.message); }
+}
+
+async function cgdRevoke() {
+  if (!_db || !_cgdId) return;
+  if (!confirm2('비공개로 전환하시겠습니까?')) return;
+  try {
+    await _db.collection('custom_games').doc(_cgdId).update({ status: 'private' });
+    showToast('비공개로 전환됨');
+    openCGDetail(_cgdId);
+    loadCustomGames();
+  } catch(e) { showToast('실패: ' + e.message); }
+}
+
+async function cgdDelete() {
+  if (!_cgdId) return;
+  await deleteCustomGame(_cgdId);
+}
+
+/* ═══════════════════════════════════════════
+   MAKER RANKING
+═══════════════════════════════════════════ */
+async function loadMakerRanking() {
+  if (!_db) { showToast('Firebase 미연결'); return; }
+  const tbody = document.getElementById('mr-tbody');
+  tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:1.5rem;">불러오는 중...</td></tr>';
+
+  try {
+    const snap = await _db.collection('maker_ranking').orderBy('score', 'desc').limit(50).get();
+    if (snap.empty) {
+      tbody.innerHTML = '<tr><td colspan="7" style="text-align:center;color:var(--text-muted);padding:2rem;">메이커가 없습니다.</td></tr>';
+      return;
+    }
+    tbody.innerHTML = snap.docs.map((d, i) => {
+      const m = d.data();
+      const rankEmoji = i === 0 ? '🥇' : i === 1 ? '🥈' : i === 2 ? '🥉' : `${i + 1}`;
+      return `<tr>
+        <td style="font-weight:700;">${rankEmoji}</td>
+        <td style="font-weight:600;">${m.creatorNick || d.id}</td>
+        <td style="font-weight:700;color:var(--sky-text);">${fmt(m.score || 0)}</td>
+        <td>${m.totalPlays || 0}</td>
+        <td>${m.uniquePlayers || 0}</td>
+        <td>${m.gameCount || 0}</td>
+        <td>
+          <button class="btn btn-danger btn-xs" onclick="deleteMakerRanking('${d.id}')">초기화</button>
+        </td>
+      </tr>`;
+    }).join('');
+  } catch(e) {
+    console.error(e);
+    tbody.innerHTML = `<tr><td colspan="7" style="text-align:center;color:var(--danger-text);padding:1.5rem;">로드 실패: ${e.message}</td></tr>`;
+  }
+}
+
+async function deleteMakerRanking(docId) {
+  if (!_db) return;
+  if (!confirm2(`"${docId}" 메이커 점수를 초기화하시겠습니까?`)) return;
+  try {
+    await _db.collection('maker_ranking').doc(docId).delete();
+    showToast('초기화됨');
+    loadMakerRanking();
+  } catch(e) { showToast('실패: ' + e.message); }
+}
+
+function fmt(n) { return Math.round(n).toLocaleString(); }
+
+/* ═══════════════════════════════════════════
+   STORAGE
+═══════════════════════════════════════════ */
+function renderStorage() {
+  const brKeys = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('br_')) brKeys.push(k);
+  }
+  brKeys.sort();
+
+  if (brKeys.length === 0) {
+    document.getElementById('storage-list').innerHTML = '<div class="empty-state"><div class="empty-state-icon">🗄️</div><div class="empty-state-text">빙고루루 관련 localStorage 데이터가 없습니다.</div></div>';
+    return;
+  }
+
+  document.getElementById('storage-list').innerHTML = `
+    <div class="tbl-wrap">
+      <table>
+        <thead><tr><th>키</th><th>크기</th><th>미리보기</th><th>관리</th></tr></thead>
+        <tbody>${brKeys.map(k => {
+          const val = localStorage.getItem(k) || '';
+          const size = new Blob([val]).size;
+          const preview = val.length > 80 ? val.slice(0, 80) + '...' : val;
+          return `<tr>
+            <td style="font-family:monospace;font-size:11px;">${k}</td>
+            <td>${size}B</td>
+            <td style="font-size:10px;color:var(--text-muted);max-width:200px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;">${preview}</td>
+            <td><button class="btn btn-danger btn-xs" onclick="deleteStorageKey('${k}')">삭제</button></td>
+          </tr>`;
+        }).join('')}</tbody>
+      </table>
+    </div>
+    <div style="margin-top:.5rem;font-size:11px;color:var(--text-muted);">총 ${brKeys.length}개 키</div>`;
+}
+
+function deleteStorageKey(key) {
+  if (!confirm2(`"${key}" 키를 삭제하시겠습니까?`)) return;
+  localStorage.removeItem(key);
+  renderStorage();
+  showToast(`"${key}" 삭제됨`);
+}
+
+function clearTodayData() {
+  if (!confirm2('오늘 데이터를 초기화하시겠습니까?')) return;
+  localStorage.removeItem('br_day_' + todayKey());
+  renderStorage();
+  showToast('오늘 데이터 초기화됨');
+}
+
+function clearAllScores() {
+  if (!confirm2('전체 점수 데이터를 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
+  const toDelete = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('br_day_')) toDelete.push(k);
+  }
+  toDelete.forEach(k => localStorage.removeItem(k));
+  renderStorage();
+  showToast(`${toDelete.length}개 점수 데이터 삭제됨`);
+}
+
+function clearAllNicks() {
+  if (!confirm2('닉네임 전체를 삭제하시겠습니까?')) return;
+  localStorage.removeItem('br_all_nicks');
+  localStorage.removeItem('br_nickname');
+  renderStorage();
+  showToast('닉네임 전체 삭제됨');
+}
+
+function clearAllBrData() {
+  if (!confirm2('빙고루루 관련 모든 데이터를 삭제하시겠습니까? 되돌릴 수 없습니다.')) return;
+  const toDelete = [];
+  for (let i = 0; i < localStorage.length; i++) {
+    const k = localStorage.key(i);
+    if (k && k.startsWith('br_')) toDelete.push(k);
+  }
+  toDelete.forEach(k => localStorage.removeItem(k));
+  renderStorage();
+  showToast(`전체 ${toDelete.length}개 키 삭제됨`);
+}
+
+/* ═══════════════════════════════════════════
+   CLOSE MODAL ON OVERLAY CLICK
+═══════════════════════════════════════════ */
+document.querySelectorAll('.modal-overlay').forEach(overlay => {
+  overlay.addEventListener('click', e => {
+    if (e.target === overlay) overlay.classList.remove('show');
+  });
+});
+
+function closeScoreDetailModal() {
+  document.getElementById('score-detail-modal').classList.remove('show');
+}
+
+/* ═══════════════════════════════════════════
+   INIT
+═══════════════════════════════════════════ */
+document.getElementById('topbar-date').textContent = 'KST ' + todayKey();
+
+// Firebase 초기화 (onSnapshot이 완료되면 renderPage 자동 호출됨)
+initFirebase();
+</script>
+</body>
+</html>
